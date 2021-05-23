@@ -48,10 +48,8 @@ final class TagRenderer implements TagRendererInterface
         $this->assetRegistry = $assetRegistry;
     }
 
-    public function renderWebpackScriptTags(string $entryName, string $position = self::POSITION_FOOTER, string $buildName = EntrypointLookupInterface::DEFAULT_BUILD, PageRenderer $pageRenderer = null, array $parameters = [], bool $registerFile = true, bool $isLibrary = false): void
+    public function getWebpackScriptTags(string $entryName, string $buildName = EntrypointLookupInterface::DEFAULT_BUILD, array $parameters = [], bool $registerFile = true): array
     {
-        /** @var PageRenderer $pageRenderer */
-        $pageRenderer = $pageRenderer ?? GeneralUtility::makeInstance(PageRenderer::class);
         $entryPointLookup = $this->getEntrypointLookup($buildName);
 
         $integrityHashes = ($entryPointLookup instanceof IntegrityDataProviderInterface) ? $entryPointLookup->getIntegrityData() : [];
@@ -64,7 +62,7 @@ final class TagRenderer implements TagRendererInterface
             return !is_null($param);
         });
 
-        foreach ($files as $file) {
+        $files = array_map(function (string $file) use ($parameters, $registerFile): array {
             $this->addAdditionalAbsRefPrefixDirectories($file);
 
             $attributes = array_replace([
@@ -81,6 +79,26 @@ final class TagRenderer implements TagRendererInterface
                 'crossorigin' => '',
             ], $parameters);
 
+            if ($registerFile === true) {
+                $this->assetRegistry->registerFile($file, 'script');
+            }
+
+            return $attributes;
+        }, $files);
+
+        // use filename (key=0) as index in array
+        $files = array_column($files, null, 'file');
+
+        return $files;
+    }
+
+    public function renderWebpackScriptTags(string $entryName, string $position = self::POSITION_FOOTER, string $buildName = EntrypointLookupInterface::DEFAULT_BUILD, PageRenderer $pageRenderer = null, array $parameters = [], bool $registerFile = true, bool $isLibrary = false): void
+    {
+        /** @var PageRenderer $pageRenderer */
+        $pageRenderer = $pageRenderer ?? GeneralUtility::makeInstance(PageRenderer::class);
+        $files = $this->getWebpackScriptTags($entryName, $buildName, $parameters, $registerFile);
+        foreach ($files as $attributes) {
+            $file = $attributes['file'];
             $attributes = array_values($attributes);
 
             $pageRendererMethodName = 'addJS' . ($position === self::POSITION_FOOTER ? 'Footer' : '');
@@ -93,22 +111,17 @@ final class TagRenderer implements TagRendererInterface
                 $pageRendererMethodName .= 'File';
                 $pageRenderer->{$pageRendererMethodName}(...$attributes);
             }
-
-            if ($registerFile === true) {
-                $this->assetRegistry->registerFile($file, 'script');
-            }
         }
     }
 
-    public function renderWebpackLinkTags(string $entryName, string $media = 'all', string $buildName = EntrypointLookupInterface::DEFAULT_BUILD, PageRenderer $pageRenderer = null, array $parameters = [], bool $registerFile = true): void
+    public function getWebpackLinkTags(string $entryName, string $media = 'all', string $buildName = EntrypointLookupInterface::DEFAULT_BUILD, array $parameters = [], bool $registerFile = true): array
     {
-        /** @var PageRenderer $pageRenderer */
-        $pageRenderer = $pageRenderer ?? GeneralUtility::makeInstance(PageRenderer::class);
         $entryPointLookup = $this->getEntrypointLookup($buildName);
         $files = $entryPointLookup->getCssFiles($entryName);
 
         unset($parameters['file']);
-        foreach ($files as $file) {
+
+        $files = array_map(function (string $file) use ($media, $parameters, $registerFile): array {
             $this->addAdditionalAbsRefPrefixDirectories($file);
 
             $attributes = array_replace([
@@ -124,13 +137,28 @@ final class TagRenderer implements TagRendererInterface
                 'inline' => false,
             ], $parameters);
 
-            $attributes = array_values($attributes);
-
-            $pageRenderer->addCssFile(...$attributes);
-
             if ($registerFile === true) {
                 $this->assetRegistry->registerFile($file, 'style');
             }
+
+            return $attributes;
+        }, $files);
+
+        // use filename (key=0) as index in array
+        $files = array_column($files, null, 'file');
+
+        return $files;
+    }
+
+    public function renderWebpackLinkTags(string $entryName, string $media = 'all', string $buildName = EntrypointLookupInterface::DEFAULT_BUILD, PageRenderer $pageRenderer = null, array $parameters = [], bool $registerFile = true): void
+    {
+        /** @var PageRenderer $pageRenderer */
+        $pageRenderer = $pageRenderer ?? GeneralUtility::makeInstance(PageRenderer::class);
+
+        $files = $this->getWebpackLinkTags($entryName, $media, $buildName, $parameters, $registerFile);
+        foreach ($files as $attributes) {
+            $attributes = array_values($attributes);
+            $pageRenderer->addCssFile(...$attributes);
         }
     }
 

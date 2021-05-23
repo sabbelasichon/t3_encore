@@ -48,11 +48,10 @@ final class PageRendererHooks
                 continue;
             }
 
-            // Is the include type 'jsLibs' and should be treated as a library
-            $isLibrary = $includeType === TagRenderer::POSITION_JS_LIBRARY;
-
+            $includes = [];
             foreach ($params[$includeType] as $key => $jsFile) {
                 if (! $this->isEncoreEntryName($jsFile['file'])) {
+                    $includes[$key] = $jsFile;
                     continue;
                 }
 
@@ -65,12 +64,14 @@ final class PageRendererHooks
                     $entryName = $buildAndEntryName[0];
                 }
 
-                $position = ($jsFile['section'] ?? '') === self::PART_FOOTER ? TagRenderer::POSITION_FOOTER : '';
+                unset($jsFile['file'], $jsFile['integrity']);
 
-                unset($params[$includeType][$key], $jsFile['file'], $jsFile['section'], $jsFile['integrity']);
-
-                $this->tagRenderer->renderWebpackScriptTags($entryName, $position, $buildName, $pageRenderer, $jsFile, true, $isLibrary);
+                $files = $this->tagRenderer->getWebpackScriptTags($entryName, $buildName, $jsFile, true);
+                foreach ($files as $key => $jsFile) {
+                    $includes[$key] = $jsFile;
+                }
             }
+            $params[$includeType] = $includes;
         }
 
         // Add CSS-Files by entryNames
@@ -79,8 +80,10 @@ final class PageRendererHooks
                 continue;
             }
 
+            $includes = [];
             foreach ($params[$includeType] as $key => $cssFile) {
                 if (! $this->isEncoreEntryName($cssFile['file'])) {
+                    $includes[$key] = $cssFile;
                     continue;
                 }
                 $buildAndEntryName = $this->createBuildAndEntryName($cssFile['file']);
@@ -92,10 +95,14 @@ final class PageRendererHooks
                     $entryName = $buildAndEntryName[0];
                 }
 
-                unset($params[$includeType][$key], $cssFile['file']);
+                unset($cssFile['file']);
 
-                $this->tagRenderer->renderWebpackLinkTags($entryName, 'all', $buildName, $pageRenderer, $cssFile);
+                $files = $this->tagRenderer->getWebpackLinkTags($entryName, 'all', $buildName, $cssFile);
+                foreach ($files as $key => $cssFile) {
+                    $includes[$key] = $cssFile;
+                }
             }
+            $params[$includeType] = $includes;
         }
     }
 

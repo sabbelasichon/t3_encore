@@ -70,6 +70,8 @@ final class PageRendererHooksTest extends UnitTestCase
 
         $this->tagRenderer->expects(self::never())->method('renderWebpackScriptTags');
         $this->tagRenderer->expects(self::never())->method('renderWebpackLinkTags');
+        $this->tagRenderer->expects(self::never())->method('getWebpackScriptTags');
+        $this->tagRenderer->expects(self::never())->method('getWebpackLinkTags');
         $this->subject->renderPreProcess($params, $this->pageRenderer);
     }
 
@@ -88,6 +90,8 @@ final class PageRendererHooksTest extends UnitTestCase
 
         $this->tagRenderer->expects(self::never())->method('renderWebpackScriptTags');
         $this->tagRenderer->expects(self::never())->method('renderWebpackLinkTags');
+        $this->tagRenderer->expects(self::never())->method('getWebpackScriptTags');
+        $this->tagRenderer->expects(self::never())->method('getWebpackLinkTags');
         $this->subject->renderPreProcess($params, $this->pageRenderer);
     }
 
@@ -111,8 +115,8 @@ final class PageRendererHooksTest extends UnitTestCase
             ],
         ];
 
-        $this->tagRenderer->expects(self::once())->method('renderWebpackScriptTags')->with('app', 'footer', EntrypointLookupInterface::DEFAULT_BUILD, $this->pageRenderer, ['forceOnTop' => true]);
-        $this->tagRenderer->expects(self::once())->method('renderWebpackLinkTags')->with('app', 'all', EntrypointLookupInterface::DEFAULT_BUILD, $this->pageRenderer);
+        $this->tagRenderer->expects(self::once())->method('getWebpackScriptTags')->with('app', EntrypointLookupInterface::DEFAULT_BUILD, ['forceOnTop' => true, 'section' => 2]);
+        $this->tagRenderer->expects(self::once())->method('getWebpackLinkTags')->with('app', 'all', EntrypointLookupInterface::DEFAULT_BUILD);
         $this->subject->renderPreProcess($params, $this->pageRenderer);
     }
 
@@ -134,8 +138,8 @@ final class PageRendererHooksTest extends UnitTestCase
             ],
         ];
 
-        $this->tagRenderer->expects(self::once())->method('renderWebpackScriptTags')->with('app', '', 'config', $this->pageRenderer);
-        $this->tagRenderer->expects(self::once())->method('renderWebpackLinkTags')->with('app', 'all', 'config', $this->pageRenderer);
+        $this->tagRenderer->expects(self::once())->method('getWebpackScriptTags')->with('app', 'config');
+        $this->tagRenderer->expects(self::once())->method('getWebpackLinkTags')->with('app', 'all', 'config');
         $this->subject->renderPreProcess($params, $this->pageRenderer);
     }
 }
